@@ -141,6 +141,7 @@ enum TW_FSTAB_FLAGS {
 	TWFLAG_WIPEDURINGFACTORYRESET,
 	TWFLAG_WIPEINGUI,
 	TWFLAG_SLOTSELECT,
+    	TWFLAG_DONTMOUNT,
 };
 
 /* Flags without a trailing '=' are considered dual format flags and can be
@@ -175,6 +176,7 @@ const struct flag_list tw_flags[] = {
 	{ "wipeduringfactoryreset", TWFLAG_WIPEDURINGFACTORYRESET },
 	{ "wipeingui",              TWFLAG_WIPEINGUI },
 	{ "slotselect",             TWFLAG_SLOTSELECT },
+    	{ "dontmount",              TWFLAG_DONTMOUNT},
 	{ 0,                        0 },
 };
 
@@ -236,6 +238,7 @@ TWPartition::TWPartition() {
 	Is_Adopted_Storage = false;
 	Adopted_GUID = "";
 	SlotSelect = false;
+    	DontMount = false;
 }
 
 TWPartition::~TWPartition(void) {
@@ -485,6 +488,11 @@ void TWPartition::Setup_Data_Partition(bool Display_Error) {
 	if (Mount_Point != "/data")
 		return;
 
+	if(DontMount) {
+		DontMount = false;
+		return;
+	}
+
 	// Ensure /data is not mounted as tmpfs for qcom hardware decrypt
 	UnMount(false);
 
@@ -720,6 +728,9 @@ void TWPartition::Apply_TW_Flag(const unsigned flag, const char* str, const bool
 		case TWFLAG_SLOTSELECT:
 			SlotSelect = true;
 			break;
+        	case TWFLAG_DONTMOUNT:
+            		DontMount = true;
+            		break;
 		default:
 			// Should not get here
 			LOGINFO("Flag identified for processing, but later unmatched: %i\n", flag);
@@ -1180,6 +1191,11 @@ bool TWPartition::Mount(bool Display_Error) {
 	} else if (!Can_Be_Mounted) {
 		return false;
 	}
+
+    if (DontMount) {
+        DontMount = false;
+        return true;
+    }
 
 	Find_Actual_Block_Device();
 
